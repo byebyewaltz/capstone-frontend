@@ -1,0 +1,233 @@
+import React, { useState, useEffect } from "react";
+import { Shield, Trash2, UserPlus, Building2, Plus, Check } from "lucide-react";
+import { api, ApiError } from "../api.js";
+import { useApp } from "../App.jsx";
+import { ROLES, initials } from "../constants.js";
+
+export default function TeamView() {
+  const { me, membership, can, dataVersion, refresh, orgId, orgs, createOrg, selectOrg } = useApp();
+  const [members, setMembers] = useState([]);
+  const [err, setErr] = useState("");
+  const [ok, setOk] = useState("");
+
+  // Assign panel
+  const [directory, setDirectory] = useState([]);
+  const [picked, setPicked] = useState("");
+  const [assignRole, setAssignRole] = useState("member");
+  const [busy, setBusy] = useState(false);
+
+  // Create-organization panel
+  const [creating, setCreating] = useState(false);
+  const [orgName, setOrgName] = useState("");
+  const [orgSlug, setOrgSlug] = useState("");
+  const [touchedSlug, setTouchedSlug] = useState(false);
+
+  const org = orgs.find((o) => o.id === orgId);
+
+  const load = () => api.members(orgId).then(setMembers).catch(() => {});
+  useEffect(() => { load(); }, [dataVersion, orgId]);
+
+  // The directory is admin-only; a viewer's request would 403, so don't ask.
+  useEffect(() => {
+    if (!can("admin") || !orgId) return setDirectory([]);
+    api.assignable(orgId).then(setDirectory).catch(() => setDirectory([]));
+  }, [dataVersion, orgId, membership]);
+
+  const flash = (msg) => { setOk(msg); setTimeout(() => setOk(""), 2600); };
+
+  const changeRole = async (memberId, role) => {
+    setErr("");
+    try { await api.setRole(orgId, memberId, role); load(); refresh(); }
+    catch (e) { setErr(e instanceof ApiError ? e.message : "Could not update role."); }
+  };
+
+  const remove = async (memberId) => {
+    setErr("");
+    try { await api.removeMember(orgId, memberId); load(); refresh(); }
+    catch (e) { setErr(e instanceof ApiError ? e.message : "Could not remove member."); }
+  };
+
+  // Assign an existing account to this organization.
+  const assign = async () => {
+    if (!picked) return setErr("Choose someone to assign.");
+    setErr(""); setBusy(true);
+    try {
+      const who = /^\d+$/.test(picked) ? { userId: Number(picked) } : { email: picked.trim() };
+      const added = await api.addMember(orgId, who, assignRole);
+      flash(`${added.name || "They"} joined ${org?.name || "the workspace"}.`);
+      setPicked(""); load(); refresh();
+    } catch (e) {
+      setErr(e instanceof ApiError
+        ? (e.status === 404 ? "No account matches that person."
+          : e.status === 409 ? "They're already in this organization."
+          : e.status === 403 ? "Only admins can assign people."
+          : e.message)
+        : "Could not assign that person.");
+    } finally { setBusy(false); }
+  };
+
+  const onOrgName = (v) => {
+    setOrgName(v);
+    if (!touchedSlug) {
+      setOrgSlug(v.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 24));
+    }
+  };
+
+  const submitOrg = async () => {
+    if (!orgName.trim() || !orgSlug.trim()) return setErr("Name and slug are both required.");
+    setErr(""); setBusy(true);
+    try {
+      const created = await createOrg({ name: orgName.trim(), slug: orgSlug.trim() });
+      flash(`Created ${created.name}. You're its owner.`);
+      setOrgName(""); setOrgSlug(""); setTouchedSlug(false); setCreating(false);
+    } catch (e) {
+      setErr(e instanceof ApiError && e.status === 409
+        ? "That slug is already taken."
+        : "Could not create the organization.");
+    } finally { setBusy(false); }
+  };
+
+  // Only offer people who aren't already in this org.
+  const candidates = directory.filter((u) => !u.is_member);
+
+  return (
+    <div className="tf-team">
+      <div className="tf-eyebrow">People</div>
+      <h2 className="tf-h2">Team & roles</h2>
+      <p className="tf-lede">Roles decide who can move, edit, and delete work. Only owners and admins can change them.</p>
+
+      {!can("admin") && membership && (
+        <div className="tf-note"><Shield size={15} /> You're a <b>{ROLES[membership.role]}</b>. Role management is read-only for you.</div>
+      )}
+      {err && <div className="tf-auth-err" style={{ marginTop: 12 }}>{err}</div>}
+      {ok && <div className="tf-ok"><Check size={14} /> {ok}</div>}
+
+      {can("admin") && (
+        <div className="tf-org-admin">
+          {/* ── Assign an existing account to this organization ───────────── */}
+          <div className="tf-panel">
+            <div className="tf-panel-head">
+              <UserPlus size={15} />
+              <div>
+                <h4>Assign to {org?.name || "this workspace"}</h4>
+                <p>Pick an existing account, or type an email address.</p>
+              </div>
+            </div>
+            <div className="tf-panel-row">
+              <input list="tf-people" value={picked} placeholder="Search people or enter an email"
+                onChange={(e) => setPicked(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && assign()} />
+              <datalist id="tf-people">
+                {candidates.map((u) => <option key={u.id} value={String(u.id)} label={`${u.name} — ${u.email}`} />)}
+              </datalist>
+              <select value={assignRole} onChange={(e) => setAssignRole(e.target.value)}>
+                {Object.keys(ROLES).filter((r) => r !== "owner").map((r) => <option key={r} value={r}>{ROLES[r]}</option>)}
+              </select>
+              <button className="tf-btn tf-btn-primary tf-btn-sm" onClick={assign} disabled={busy}>Assign</button>
+            </div>
+            {candidates.length > 0 && (
+              <div className="tf-chiprow">
+                {candidates.slice(0, 6).map((u) => (
+                  <button key={u.id} className={`tf-person-chip ${picked === String(u.id) ? "on" : ""}`}
+                    onClick={() => setPicked(String(u.id))}>
+                    <span className="tf-ava xs" style={{ background: u.color }}>{initials(u.name)}</span>
+                    {u.name}
+                  </button>
+                ))}
+                {candidates.length > 6 && <span className="tf-chip-more">+{candidates.length - 6} more</span>}
+              </div>
+            )}
+            {candidates.length === 0 && directory.length > 0 && (
+              <p className="tf-panel-empty">Everyone with an account is already in this workspace.</p>
+            )}
+          </div>
+
+          {/* ── Create a new organization ─────────────────────────────────── */}
+          <div className="tf-panel">
+            <div className="tf-panel-head">
+              <Building2 size={15} />
+              <div>
+                <h4>Create an organization</h4>
+                <p>You'll become its owner. Work stays isolated from other workspaces.</p>
+              </div>
+            </div>
+            {!creating ? (
+              <button className="tf-btn tf-btn-sm" onClick={() => setCreating(true)}>
+                <Plus size={14} /> New organization
+              </button>
+            ) : (
+              <>
+                <div className="tf-panel-row">
+                  <input autoFocus value={orgName} placeholder="Organization name"
+                    onChange={(e) => onOrgName(e.target.value)}
+                    onKeyDown={(e) => e.key === "Enter" && submitOrg()} />
+                  <input className="tf-slug" value={orgSlug} placeholder="slug"
+                    onChange={(e) => { setTouchedSlug(true); setOrgSlug(e.target.value); }}
+                    onKeyDown={(e) => e.key === "Enter" && submitOrg()} />
+                  <button className="tf-btn tf-btn-primary tf-btn-sm" onClick={submitOrg} disabled={busy}>
+                    {busy ? "Creating…" : "Create"}
+                  </button>
+                  <button className="tf-btn tf-btn-sm" onClick={() => setCreating(false)}>Cancel</button>
+                </div>
+                <p className="tf-panel-empty">taskforge.io/{orgSlug || "your-team"}</p>
+              </>
+            )}
+            {orgs.length > 1 && (
+              <div className="tf-chiprow">
+                {orgs.map((o) => (
+                  <button key={o.id} className={`tf-person-chip ${o.id === orgId ? "on" : ""}`}
+                    onClick={() => selectOrg(o.id)}>
+                    <Building2 size={12} /> {o.name}
+                    <span className="tf-role-chip sm" data-role={o.role}>{ROLES[o.role]}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      <div className="tf-table">
+        <div className="tf-tr tf-th"><span>Member</span><span>Email</span><span>Role</span><span></span></div>
+        {members.map((m) => {
+          const isSelf = m.user_id === me.id;
+          const canEdit = can("admin") && m.role !== "owner" && !isSelf;
+          return (
+            <div key={m.id} className="tf-tr">
+              <span className="tf-td-member">
+                <span className="tf-ava" style={{ background: m.color }}>{initials(m.name)}</span>
+                {m.name}{isSelf && <em>you</em>}
+              </span>
+              <span className="tf-td-mail">{m.email}</span>
+              <span>
+                {canEdit ? (
+                  <select className="tf-role-select" value={m.role} onChange={(e) => changeRole(m.id, e.target.value)}>
+                    {Object.keys(ROLES).filter((r) => r !== "owner").map((r) => <option key={r} value={r}>{ROLES[r]}</option>)}
+                  </select>
+                ) : <span className="tf-role-chip" data-role={m.role}>{ROLES[m.role]}</span>}
+              </span>
+              <span>{canEdit && <button className="tf-icon-btn danger sm" onClick={() => remove(m.id)}><Trash2 size={14} /></button>}</span>
+            </div>
+          );
+        })}
+      </div>
+
+      <div className="tf-perm-legend">
+        <h4>What each role can do</h4>
+        <div className="tf-perm-grid">
+          {[
+            { r: "owner", d: "Full control. Manage org, roles, and all work." },
+            { r: "admin", d: "Manage members, projects, and every task." },
+            { r: "member", d: "Create, move, edit, and comment on tasks." },
+            { r: "viewer", d: "Read-only. Can view boards but not change them." },
+          ].map((x) => (
+            <div key={x.r} className="tf-perm-card">
+              <span className="tf-role-chip" data-role={x.r}>{ROLES[x.r]}</span>
+              <p>{x.d}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
