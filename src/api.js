@@ -48,12 +48,12 @@ export const api = {
   deleteAccount: () => del("/auth/me"),
 
   // org + members
-  // Note: the API still exposes POST /orgs, but the UI no longer creates
-  // organizations — new accounts auto-join the default workspace.
   orgs: () => get("/orgs"),
+  createOrg: (body) => post("/orgs", body),
   getOrg: (orgId) => get(`/orgs/${orgId}`),
   members: (orgId) => get(`/orgs/${orgId}/members`),
-  addMember: (orgId, email, role) => post(`/orgs/${orgId}/members`, { email, role }),
+  assignable: (orgId) => get(`/orgs/${orgId}/assignable`),
+  addMember: (orgId, who, role) => post(`/orgs/${orgId}/members`, { ...who, role }),
   setRole: (orgId, memberId, role) => patch(`/orgs/${orgId}/members/${memberId}`, { role }),
   removeMember: (orgId, memberId) => del(`/orgs/${orgId}/members/${memberId}`),
 

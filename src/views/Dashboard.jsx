@@ -23,14 +23,14 @@ export default function Dashboard() {
       const lists = await Promise.all(projs.map((p) => api.tasks(orgId, p.id, { assigneeId: me.id })));
       setMyCount(lists.flat().length);
     })();
-  }, [dataVersion]);
+  }, [orgId, me.id, dataVersion]);
 
   if (!data) return <div className="tf-empty">Loading analytics…</div>;
 
   const { totals, byStatus, byPriority } = data;
   const completion = totals.total ? Math.round((totals.completed / totals.total) * 100) : 0;
   const priorityData = byPriority.map((r) => ({
-    name: PRIORITY[r.name]?.label || r.name, value: r.value, color: PRIORITY[r.name]?.color || T.sand,
+    name: PRIORITY[r.name]?.label || r.name, value: r.count, color: PRIORITY[r.name]?.color || T.sand,
   }));
 
   return (
@@ -57,7 +57,7 @@ export default function Dashboard() {
               <XAxis dataKey="name" tick={{ fill: T.inkSoft, fontSize: 11, fontFamily: "IBM Plex Mono" }} />
               <YAxis tick={{ fill: T.inkSoft, fontSize: 11, fontFamily: "IBM Plex Mono" }} allowDecimals={false} />
               <Tooltip contentStyle={tipStyle} />
-              <Bar dataKey="value" fill={T.terra} radius={[5, 5, 0, 0]} maxBarSize={54} />
+              <Bar dataKey="count" fill={T.terra} radius={[5, 5, 0, 0]} maxBarSize={54} />
             </BarChart>
           </ResponsiveContainer>
         </div>

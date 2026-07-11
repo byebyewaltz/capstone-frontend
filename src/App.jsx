@@ -78,6 +78,16 @@ export default function App() {
     refresh();
   }, [me, orgs, refresh]);
 
+  // The caller becomes the new org's owner; switch straight into it.
+  async function createOrg({ name, slug }) {
+    const org = await api.createOrg({ name, slug });
+    const withRole = { ...org, role: "owner" };
+    const next = [...orgs, withRole];
+    setOrgs(next);
+    await selectOrg(org.id, me, next);
+    return org;
+  }
+
   async function onAuthed({ user, token }) {
     setToken(token);
     await establish(user);
@@ -118,7 +128,7 @@ export default function App() {
   }
 
   const ctx = {
-    me, orgs, orgId, selectOrg, membership, can, signOut,
+    me, orgs, orgId, selectOrg, createOrg, membership, can, signOut,
     view, setView, activeProject, setActiveProject,
     openTask, setOpenTask, dataVersion, refresh,
   };

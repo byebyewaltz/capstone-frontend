@@ -1,14 +1,15 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { Shield, Trash2, UserPlus, Building2, Plus, Check } from "lucide-react";
 import { api, ApiError } from "../api.js";
 import { useApp } from "../App.jsx";
-import { ROLES, initials } from "../constants.js";
+import { ROLES, ROLE_RANK, initials } from "../constants.js";
 
 export default function TeamView() {
   const { me, membership, can, dataVersion, refresh, orgId, orgs, createOrg, selectOrg } = useApp();
   const [members, setMembers] = useState([]);
   const [err, setErr] = useState("");
   const [ok, setOk] = useState("");
+  const [confirmRemove, setConfirmRemove] = useState(null); // member id pending removal
 
   // Assign panel
   const [directory, setDirectory] = useState([]);
@@ -23,17 +24,38 @@ export default function TeamView() {
   const [touchedSlug, setTouchedSlug] = useState(false);
 
   const org = orgs.find((o) => o.id === orgId);
+  const myRank = membership ? ROLE_RANK[membership.role] : -1;
+
+  // Roles the caller may grant: owners can grant up to admin, admins up to
+  // member. Nobody grants "owner" from this screen.
+  const grantable = useMemo(
+    () => Object.keys(ROLES).filter((r) => r !== "owner" && ROLE_RANK[r] < myRank),
+    [myRank]
+  );
 
   const load = () => api.members(orgId).then(setMembers).catch(() => {});
-  useEffect(() => { load(); }, [dataVersion, orgId]);
+
+  useEffect(() => {
+    load();
+    // Leaving stale banners/confirms up after an org switch is confusing.
+    setErr(""); setOk(""); setConfirmRemove(null); setPicked("");
+  }, [dataVersion, orgId]);
 
   // The directory is admin-only; a viewer's request would 403, so don't ask.
   useEffect(() => {
-    if (!can("admin") || !orgId) return setDirectory([]);
+    if (!can("admin") || !orgId) {
+      setDirectory([]);
+      return;
+    }
     api.assignable(orgId).then(setDirectory).catch(() => setDirectory([]));
   }, [dataVersion, orgId, membership]);
 
   const flash = (msg) => { setOk(msg); setTimeout(() => setOk(""), 2600); };
+
+  // A row is editable when the caller outranks that member. Owners are never
+  // editable here, and you can't change or remove yourself.
+  const canEditRow = (m) =>
+    can("admin") && m.user_id !== me.id && m.role !== "owner" && ROLE_RANK[m.role] < myRank;
 
   const changeRole = async (memberId, role) => {
     setErr("");
@@ -42,25 +64,32 @@ export default function TeamView() {
   };
 
   const remove = async (memberId) => {
-    setErr("");
+    setErr(""); setConfirmRemove(null);
     try { await api.removeMember(orgId, memberId); load(); refresh(); }
     catch (e) { setErr(e instanceof ApiError ? e.message : "Could not remove member."); }
   };
 
-  // Assign an existing account to this organization.
+  // Only offer people who aren't already in this org.
+  const candidates = directory.filter((u) => !u.is_member);
+
+  // Assign an existing account to this organization. The picker works on
+  // email: choosing a suggestion fills the email in, and free-typed emails
+  // are sent as-is so the server can resolve accounts we can't see.
   const assign = async () => {
-    if (!picked) return setErr("Choose someone to assign.");
+    const value = picked.trim();
+    if (!value) return setErr("Choose someone to assign, or type an email.");
     setErr(""); setBusy(true);
     try {
-      const who = /^\d+$/.test(picked) ? { userId: Number(picked) } : { email: picked.trim() };
+      const match = candidates.find((u) => u.email.toLowerCase() === value.toLowerCase());
+      const who = match ? { userId: match.id } : { email: value };
       const added = await api.addMember(orgId, who, assignRole);
-      flash(`${added.name || "They"} joined ${org?.name || "the workspace"}.`);
+      flash(`${added?.name || match?.name || "They"} joined ${org?.name || "the workspace"}.`);
       setPicked(""); load(); refresh();
     } catch (e) {
       setErr(e instanceof ApiError
         ? (e.status === 404 ? "No account matches that person."
           : e.status === 409 ? "They're already in this organization."
-          : e.status === 403 ? "Only admins can assign people."
+          : e.status === 403 ? "You don't have permission to assign people."
           : e.message)
         : "Could not assign that person.");
     } finally { setBusy(false); }
@@ -87,9 +116,6 @@ export default function TeamView() {
     } finally { setBusy(false); }
   };
 
-  // Only offer people who aren't already in this org.
-  const candidates = directory.filter((u) => !u.is_member);
-
   return (
     <div className="tf-team">
       <div className="tf-eyebrow">People</div>
@@ -115,21 +141,23 @@ export default function TeamView() {
             </div>
             <div className="tf-panel-row">
               <input list="tf-people" value={picked} placeholder="Search people or enter an email"
-                onChange={(e) => setPicked(e.target.value)}
+                onChange={(e) => { setPicked(e.target.value); setErr(""); }}
                 onKeyDown={(e) => e.key === "Enter" && assign()} />
               <datalist id="tf-people">
-                {candidates.map((u) => <option key={u.id} value={String(u.id)} label={`${u.name} — ${u.email}`} />)}
+                {candidates.map((u) => <option key={u.id} value={u.email}>{u.name}</option>)}
               </datalist>
               <select value={assignRole} onChange={(e) => setAssignRole(e.target.value)}>
-                {Object.keys(ROLES).filter((r) => r !== "owner").map((r) => <option key={r} value={r}>{ROLES[r]}</option>)}
+                {grantable.map((r) => <option key={r} value={r}>{ROLES[r]}</option>)}
               </select>
-              <button className="tf-btn tf-btn-primary tf-btn-sm" onClick={assign} disabled={busy}>Assign</button>
+              <button className="tf-btn tf-btn-primary tf-btn-sm" onClick={assign} disabled={busy}>
+                {busy ? "Assigning…" : "Assign"}
+              </button>
             </div>
             {candidates.length > 0 && (
               <div className="tf-chiprow">
                 {candidates.slice(0, 6).map((u) => (
-                  <button key={u.id} className={`tf-person-chip ${picked === String(u.id) ? "on" : ""}`}
-                    onClick={() => setPicked(String(u.id))}>
+                  <button key={u.id} className={`tf-person-chip ${picked === u.email ? "on" : ""}`}
+                    onClick={() => setPicked(u.email)}>
                     <span className="tf-ava xs" style={{ background: u.color }}>{initials(u.name)}</span>
                     {u.name}
                   </button>
@@ -191,7 +219,7 @@ export default function TeamView() {
         <div className="tf-tr tf-th"><span>Member</span><span>Email</span><span>Role</span><span></span></div>
         {members.map((m) => {
           const isSelf = m.user_id === me.id;
-          const canEdit = can("admin") && m.role !== "owner" && !isSelf;
+          const editable = canEditRow(m);
           return (
             <div key={m.id} className="tf-tr">
               <span className="tf-td-member">
@@ -200,13 +228,24 @@ export default function TeamView() {
               </span>
               <span className="tf-td-mail">{m.email}</span>
               <span>
-                {canEdit ? (
+                {editable ? (
                   <select className="tf-role-select" value={m.role} onChange={(e) => changeRole(m.id, e.target.value)}>
-                    {Object.keys(ROLES).filter((r) => r !== "owner").map((r) => <option key={r} value={r}>{ROLES[r]}</option>)}
+                    {/* Include the current role even if it isn't grantable, so the select isn't lying. */}
+                    {[...new Set([m.role, ...grantable])].map((r) => <option key={r} value={r}>{ROLES[r]}</option>)}
                   </select>
                 ) : <span className="tf-role-chip" data-role={m.role}>{ROLES[m.role]}</span>}
               </span>
-              <span>{canEdit && <button className="tf-icon-btn danger sm" onClick={() => remove(m.id)}><Trash2 size={14} /></button>}</span>
+              <span>
+                {editable && (confirmRemove === m.id ? (
+                  <span className="tf-inline-confirm">Remove?
+                    <button className="tf-btn tf-btn-sm tf-btn-danger" onClick={() => remove(m.id)}>Yes</button>
+                    <button className="tf-btn tf-btn-sm" onClick={() => setConfirmRemove(null)}>No</button>
+                  </span>
+                ) : (
+                  <button className="tf-icon-btn danger sm" title={`Remove ${m.name}`}
+                    onClick={() => setConfirmRemove(m.id)}><Trash2 size={14} /></button>
+                ))}
+              </span>
             </div>
           );
         })}
