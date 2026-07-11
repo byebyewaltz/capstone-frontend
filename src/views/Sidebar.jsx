@@ -1,7 +1,7 @@
-import React, { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import { LayoutDashboard, Kanban, Users, Settings, Plus, Building2, ChevronsUpDown, Check } from "lucide-react";
 import { api, ApiError } from "../api.js";
-import { useApp } from "../App.jsx";
+import { useApp } from "../context.js";
 import { initials, ROLES, T } from "../constants.js";
 
 export default function Sidebar() {
@@ -21,11 +21,13 @@ export default function Sidebar() {
 
   useEffect(() => {
     if (!orgId) return;
-    api.projects(orgId).then((rows) => {
-      setProjects(rows);
-      setActiveProject((cur) => (rows.some((p) => p.id === cur) ? cur : rows[0]?.id ?? null));
-    });
-  }, [dataVersion, orgId]);
+    api.projects(orgId)
+      .then((rows) => {
+        setProjects(rows);
+        setActiveProject((cur) => (rows.some((p) => p.id === cur) ? cur : rows[0]?.id ?? null));
+      })
+      .catch(() => setProjects([]));
+  }, [dataVersion, orgId, setActiveProject]);
 
   useEffect(() => {
     const onDoc = (e) => { if (popRef.current && !popRef.current.contains(e.target)) setOrgOpen(false); };

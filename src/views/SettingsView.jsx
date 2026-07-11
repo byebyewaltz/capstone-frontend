@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { api } from "../api.js";
-import { useApp } from "../App.jsx";
+import { useApp } from "../context.js";
 import { ROLES } from "../constants.js";
 
 export default function SettingsView() {

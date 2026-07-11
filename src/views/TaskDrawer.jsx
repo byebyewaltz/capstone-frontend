@@ -1,7 +1,7 @@
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { X, Trash2, Paperclip, MessageSquare, Send, FileText, Plus } from "lucide-react";
 import { api } from "../api.js";
-import { useApp } from "../App.jsx";
+import { useApp } from "../context.js";
 import { PRIORITY, initials, fmtSize, timeAgo, T } from "../constants.js";
 
 export default function TaskDrawer({ projectId, taskId, onClose }) {
@@ -25,7 +25,7 @@ export default function TaskDrawer({ projectId, taskId, onClose }) {
       if (tks.some((t) => t.id === taskId)) return p.id;
     }
     return null;
-  }, [projectId, taskId]);
+  }, [orgId, projectId, taskId]);
 
   const load = useCallback(async () => {
     const resolved = await resolveProject();
@@ -41,7 +41,7 @@ export default function TaskDrawer({ projectId, taskId, onClose }) {
     setMembers(mem);
     setComments(cms);
     setFiles(atts);
-  }, [resolveProject, taskId]);
+  }, [orgId, resolveProject, taskId, onClose]);
 
   useEffect(() => { load(); }, [load]);
 

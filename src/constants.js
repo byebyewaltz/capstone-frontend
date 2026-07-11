@@ -18,7 +18,7 @@ export const PRIORITY = {
 export const ORG_ID = 1; // single-org demo
 
 export const initials = (n) =>
-  (n || "?").split(" ").map((x) => x[0]).slice(0, 2).join("").toUpperCase();
+  (n || "?").split(" ").filter(Boolean).map((x) => x[0]).slice(0, 2).join("").toUpperCase();
 export const fmtSize = (b) =>
   b > 1e6 ? (b / 1e6).toFixed(1) + " MB" : (b / 1e3).toFixed(0) + " KB";
 export const fmtDate = (d) =>

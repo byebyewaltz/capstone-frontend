@@ -28,7 +28,7 @@ async function request(method, path, body) {
     body: body ? JSON.stringify(body) : undefined,
   });
   let data = null;
-  try { data = await res.json(); } catch {}
+  try { data = await res.json(); } catch { /* non-JSON response body */ }
   if (!res.ok) {
     throw new ApiError(res.status, data?.error || `Request failed (${res.status})`);
   }
@@ -38,7 +38,7 @@ async function request(method, path, body) {
 const get = (p) => request("GET", p);
 const post = (p, b) => request("POST", p, b);
 const patch = (p, b) => request("PATCH", p, b);
-const del = (p, b) => request("DELETE", p, b);
+const del = (p) => request("DELETE", p);
 
 export const api = {
   // auth
@@ -64,8 +64,10 @@ export const api = {
   analytics: (orgId) => get(`/orgs/${orgId}/projects/analytics`),
   search: (orgId, q) => get(`/orgs/${orgId}/projects/search?q=${encodeURIComponent(q)}`),
 
+  // dashboard analytics
   weeklyActivity: (orgId) => get(`/orgs/${orgId}/analytics/weekly`),
-monthlyGrowth:  (orgId) => get(`/orgs/${orgId}/analytics/monthly`),
+  monthlyGrowth: (orgId) => get(`/orgs/${orgId}/analytics/monthly`),
+
   // tasks
   tasks: (orgId, projectId, params = {}) => {
     const qs = new URLSearchParams(

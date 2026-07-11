@@ -1,11 +1,11 @@
-import React, { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Search, Bell, ChevronDown, LogOut, Trash2 } from "lucide-react";
 import { api } from "../api.js";
-import { useApp } from "../App.jsx";
+import { useApp } from "../context.js";
 import { initials, timeAgo, PRIORITY } from "../constants.js";
 
 export default function Topbar() {
-  const { me, view, setOpenTask, signOut, refresh, dataVersion, orgId } = useApp();
+  const { me, view, setOpenTask, signOut, dataVersion, orgId } = useApp();
   const [q, setQ] = useState("");
   const [results, setResults] = useState([]);
   const [notifs, setNotifs] = useState([]);
@@ -23,7 +23,7 @@ export default function Topbar() {
       api.search(orgId, q).then(setResults).catch(() => setResults([]));
     }, 200);
     return () => clearTimeout(id);
-  }, [q]);
+  }, [q, orgId]);
 
   const unread = useMemo(() => notifs.filter((n) => !n.is_read).length, [notifs]);
 
@@ -44,7 +44,7 @@ export default function Topbar() {
 
   return (
     <header className="tf-top">
-      <div className="tf-crumb">{view === "board" ? "Board" : view[0].toUpperCase() + view.slice(1)}</div>
+      <div className="tf-crumb">{view[0].toUpperCase() + view.slice(1)}</div>
       <div className="tf-search">
         <Search size={16} />
         <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search tasks…" />
@@ -54,7 +54,7 @@ export default function Topbar() {
               <button key={t.id} className="tf-search-row" onClick={() => openResult(t)}>
                 <span className="tf-proj-key sm">{t.project_key}</span>
                 <span className="tf-search-title">{t.title}</span>
-                <span className="tf-prio-dot" style={{ background: PRIORITY[t.priority].color }} />
+                <span className="tf-prio-dot" style={{ background: PRIORITY[t.priority]?.color }} />
               </button>
             ))}
           </div>
@@ -70,7 +70,7 @@ export default function Topbar() {
               <div className="tf-pop-head"><span>Notifications</span>
                 <button className="tf-link" onClick={async () => { await api.readAllNotifs(); loadNotifs(); }}>Mark all read</button>
               </div>
-              {notifs.length === 0 && <div className="tf-empty-sm">You're all caught up.</div>}
+              {notifs.length === 0 && <div className="tf-empty-sm">You&rsquo;re all caught up.</div>}
               {notifs.map((n) => (
                 <button key={n.id} className={`tf-notif ${n.is_read ? "" : "unread"}`} onClick={() => openNotif(n)}>
                   <span className="tf-notif-dot" />

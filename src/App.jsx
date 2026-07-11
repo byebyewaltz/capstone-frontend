@@ -1,6 +1,7 @@
-import React, { useState, useEffect, useCallback, createContext, useContext } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { api, setToken, getToken } from "./api.js";
 import { ROLE_RANK } from "./constants.js";
+import { AppCtx } from "./context.js";
 import AuthGate from "./views/AuthGate.jsx";
 import Sidebar from "./views/Sidebar.jsx";
 import Topbar from "./views/Topbar.jsx";
@@ -9,9 +10,6 @@ import Board from "./views/Board.jsx";
 import TeamView from "./views/TeamView.jsx";
 import SettingsView from "./views/SettingsView.jsx";
 import TaskDrawer from "./views/TaskDrawer.jsx";
-
-const AppCtx = createContext(null);
-export const useApp = () => useContext(AppCtx);
 
 export default function App() {
   const [me, setMe] = useState(null);
@@ -26,7 +24,7 @@ export default function App() {
   const [dataVersion, setDataVersion] = useState(0);
   const refresh = useCallback(() => setDataVersion((v) => v + 1), []);
 
-  // Resolve a stored session on load.
+  // Resolve a stored session on load (mount-only by design).
   useEffect(() => {
     (async () => {
       if (!getToken()) return setBooting(false);
@@ -39,9 +37,9 @@ export default function App() {
         setBooting(false);
       }
     })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Load the user and the organizations they belong to.
   // Load the user and the organizations they belong to. The API adopts an
   // org-less account into the default workspace, so `mine` should never be
   // empty; if it is, the fallback screen explains rather than crashing.
@@ -104,6 +102,7 @@ export default function App() {
     (min) => membership && ROLE_RANK[membership.role] >= ROLE_RANK[min],
     [membership]
   );
+  const closeTask = useCallback(() => setOpenTask(null), []);
 
   if (booting) return <div className="tf-boot">Loading TaskForge…</div>;
   if (!me) return <AuthGate onAuthed={onAuthed} />;
@@ -113,9 +112,9 @@ export default function App() {
     return (
       <div className="tf-boot">
         <div>
-          <p className="tf-boot-title">Couldn't load your workspace</p>
+          <p className="tf-boot-title">Couldn&rsquo;t load your workspace</p>
           <p className="tf-boot-sub">
-            The server didn't return one for this account. If the database was just
+            The server didn&rsquo;t return one for this account. If the database was just
             reset, run <code>npm run db:seed</code> and reload.
           </p>
           <div className="tf-boot-actions">
@@ -145,12 +144,13 @@ export default function App() {
             {view === "team" && <TeamView />}
             {view === "settings" && <SettingsView />}
           </div>
+          <footer className="tf-footer">© 2025 - Donna Chen</footer>
         </main>
         {openTask && (
           <TaskDrawer
             projectId={openTask.projectId}
             taskId={openTask.taskId}
-            onClose={() => setOpenTask(null)}
+            onClose={closeTask}
           />
         )}
       </div>

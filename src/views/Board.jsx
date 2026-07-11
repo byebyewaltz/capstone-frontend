@@ -1,11 +1,11 @@
-import React, { useState, useEffect, useCallback } from "react";
-import { Filter, User, Plus, Calendar, MessageSquare, Paperclip } from "lucide-react";
+import { useState, useEffect, useCallback } from "react";
+import { Filter, User, Plus, Calendar } from "lucide-react";
 import { api } from "../api.js";
-import { useApp } from "../App.jsx";
+import { useApp } from "../context.js";
 import { PRIORITY, initials, fmtDate, overdue } from "../constants.js";
 
 export default function Board() {
-  const { activeProject, can, setOpenTask, me, dataVersion, refresh, orgId } = useApp();
+  const { activeProject, can, setOpenTask, dataVersion, refresh, orgId } = useApp();
   const [project, setProject] = useState(null);
   const [columns, setColumns] = useState([]);
   const [tasks, setTasks] = useState([]);
@@ -28,7 +28,7 @@ export default function Board() {
     setColumns(cols.sort((a, b) => a.position - b.position));
     setTasks(tks);
     setMembers(mem);
-  }, [activeProject]);
+  }, [orgId, activeProject]);
 
   useEffect(() => { load(); }, [load, dataVersion]);
 
@@ -121,21 +121,21 @@ export default function Board() {
 
 function TaskCard({ task, members, columnName, draggable, onDragStart, onClick }) {
   const assignee = members.find((m) => m.user_id === task.assignee_id);
+  const prio = PRIORITY[task.priority] || PRIORITY.medium;
   const isDone = /done/i.test(columnName || "");
   const isOver = !isDone && overdue(task.due_date);
   return (
     <article className="tf-card" draggable={draggable} onDragStart={onDragStart} onClick={onClick}>
-      <div className="tf-card-prio" style={{ background: PRIORITY[task.priority].color }} />
+      <div className="tf-card-prio" style={{ background: prio.color }} />
       <div className="tf-card-body">
         <div className="tf-card-title">{task.title}</div>
         <div className="tf-card-meta">
           {task.due_date && (
             <span className={`tf-chip ${isOver ? "over" : ""}`}><Calendar size={11} />{fmtDate(task.due_date)}</span>
           )}
-          <span className="tf-chip"><span className="tf-prio-dot sm" style={{ background: PRIORITY[task.priority].color }} />{PRIORITY[task.priority].label}</span>
+          <span className="tf-chip"><span className="tf-prio-dot sm" style={{ background: prio.color }} />{prio.label}</span>
         </div>
         <div className="tf-card-foot">
-          <div className="tf-card-icons" />
           {assignee
             ? <span className="tf-ava sm" style={{ background: assignee.color }}>{initials(assignee.name)}</span>
             : <span className="tf-ava sm ghost"><User size={12} /></span>}
@@ -155,6 +155,8 @@ function QuickAdd({ columnId, onDone, onCreated }) {
     try {
       await api.createTask(orgId, activeProject, { title: title.trim(), columnId });
       onCreated();
+    } catch {
+      // keep the composer (and its text) open so the user can retry
     } finally { setBusy(false); }
   };
   return (

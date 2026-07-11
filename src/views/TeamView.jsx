@@ -1,7 +1,7 @@
-import React, { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { Shield, Trash2, UserPlus, Building2, Plus, Check } from "lucide-react";
 import { api, ApiError } from "../api.js";
-import { useApp } from "../App.jsx";
+import { useApp } from "../context.js";
 import { ROLES, ROLE_RANK, initials } from "../constants.js";
 
 export default function TeamView() {
@@ -33,13 +33,16 @@ export default function TeamView() {
     [myRank]
   );
 
-  const load = () => api.members(orgId).then(setMembers).catch(() => {});
+  const load = useCallback(
+    () => api.members(orgId).then(setMembers).catch(() => {}),
+    [orgId]
+  );
 
   useEffect(() => {
     load();
     // Leaving stale banners/confirms up after an org switch is confusing.
     setErr(""); setOk(""); setConfirmRemove(null); setPicked("");
-  }, [dataVersion, orgId]);
+  }, [dataVersion, load]);
 
   // The directory is admin-only; a viewer's request would 403, so don't ask.
   useEffect(() => {
@@ -48,7 +51,7 @@ export default function TeamView() {
       return;
     }
     api.assignable(orgId).then(setDirectory).catch(() => setDirectory([]));
-  }, [dataVersion, orgId, membership]);
+  }, [dataVersion, orgId, can]);
 
   const flash = (msg) => { setOk(msg); setTimeout(() => setOk(""), 2600); };
 
@@ -123,7 +126,7 @@ export default function TeamView() {
       <p className="tf-lede">Roles decide who can move, edit, and delete work. Only owners and admins can change them.</p>
 
       {!can("admin") && membership && (
-        <div className="tf-note"><Shield size={15} /> You're a <b>{ROLES[membership.role]}</b>. Role management is read-only for you.</div>
+        <div className="tf-note"><Shield size={15} /> You&rsquo;re a <b>{ROLES[membership.role]}</b>. Role management is read-only for you.</div>
       )}
       {err && <div className="tf-auth-err" style={{ marginTop: 12 }}>{err}</div>}
       {ok && <div className="tf-ok"><Check size={14} /> {ok}</div>}
@@ -176,7 +179,7 @@ export default function TeamView() {
               <Building2 size={15} />
               <div>
                 <h4>Create an organization</h4>
-                <p>You'll become its owner. Work stays isolated from other workspaces.</p>
+                <p>You&rsquo;ll become its owner. Work stays isolated from other workspaces.</p>
               </div>
             </div>
             {!creating ? (

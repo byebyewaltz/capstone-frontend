@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { api, ApiError } from "../api.js";
 import { initials, ROLES, T } from "../constants.js";
 
