@@ -1,61 +1,85 @@
-# TaskForge Web
+# TaskForge
+
+Team project-management API: organizations, members with roles, kanban
+project boards, tasks with drag-and-drop ordering, comments, attachments,
+and notifications.
 
 React + Vite frontend for TaskForge, wired to the Express + PostgreSQL API in
-`../taskforge-api`. No mock data — every screen reads and writes through real
+`../taskforge-backend`. No mock data — every screen reads and writes through real
 REST calls with a JWT held in `localStorage`.
 
-## Run it
+# TaskForge — full-stack team project management
 
-Start the backend first (see `../taskforge-api/README.md`):
+A simplified Trello/Asana/Jira in two parts:
+
+- **taskforge-backend/** — Express 5 + PostgreSQL REST API (JWT auth, RBAC,
+  normalized schema, transactional drag-and-drop, 18-test suite).
+- **taskforge-frontend/** — React + Vite frontend wired to that API (no mock data), Wechart.
+
+## Quick start
 
 ```bash
-cd ../taskforge-api
-npm install && npm run db:reset && npm run db:seed && npm start   # :3000
+# 1. Backend
+cd taskforge-api
+npm install
+# edit .env -> DATABASE_URL for your Postgres, then:
+npm run db:reset && npm run db:seed
+npm start                      # http://localhost:3000
+npm test                       # 18 passing
+
+# 2. Frontend (new terminal)
+cd taskforge-web
+npm install
+npm run dev                    # http://localhost:5173
 ```
 
-Then the frontend:
+Sign in with a demo identity (password `password123`):
+Donna = owner, Marcus = admin, Priya = member, Leo = viewer. The role changes
+what the UI permits, enforced server-side by role-guarded routes.
+
+See each folder's README for endpoint reference and architecture notes.
+
+## Setup
 
 ```bash
 npm install
-npm run dev        # http://localhost:5173
+cp .env.example .env    # set DATABASE_URL and JWT_SECRET
+npm run db:reset        # apply db/schema.sql
+npm run db:seed         # optional demo data
+npm start               # serve on :3000 (or PORT)
 ```
 
-Vite proxies `/auth`, `/orgs`, `/notifications` to `http://localhost:3000`, so
-the browser talks to a single origin in development.
+## Tests
 
-Sign in with any demo identity (password `password123`): Donna (owner),
-Marcus (admin), Priya (member), Leo (viewer). The role you pick changes what the
-UI lets you do — Leo can't drag cards or add tasks; Priya can't create projects.
+Both suites run against the database in `DATABASE_URL` and reset it.
 
-## How it maps to the API
-
-| UI action                      | Endpoint                                            |
-| ------------------------------ | --------------------------------------------------- |
-| Sign in / create account       | `POST /auth/login`, `POST /auth/register`           |
-| Delete account (account menu)  | `DELETE /auth/me`                                    |
-| Board load                     | `GET …/projects/:id/columns`, `…/tasks`             |
-| Drag a card                    | `POST …/tasks/:id/move { toColumnId, toPosition }`  |
-| Add / edit / delete task       | `POST/PATCH/DELETE …/tasks`                          |
-| Comments, attachments          | `…/tasks/:id/comments`, `…/attachments`             |
-| Notifications bell             | `GET /notifications`, `PATCH …/read`, `…/read-all`  |
-| Search box                     | `GET …/projects/search?q=`                          |
-| Dashboard charts               | `GET …/projects/analytics`                          |
-| Team roles                     | `PATCH/DELETE …/members/:id`                         |
-
-## Structure
-
-```
-src/
-  api.js          endpoint wrapper + token handling + ApiError
-  constants.js    design tokens, role ranks, formatters
-  App.jsx         auth/session state, context, view routing
-  views/
-    AuthGate.jsx  Sidebar.jsx  Topbar.jsx
-    Dashboard.jsx Board.jsx    TaskDrawer.jsx
-    TeamView.jsx  SettingsView.jsx
-  styles.css
+```bash
+npm test              # runs both suites
+npm run test:node     # node:test suite (resets + seeds, then exercises the API)
+npm run test:vitest   # vitest + supertest suite (applies schema, builds its own data)
 ```
 
-State is component-local with a shared `dataVersion` counter in context: any
-mutation calls `refresh()`, which bumps the counter and triggers dependent views
-to refetch. Board moves apply optimistically and roll back on error.
+## Layout
+
+```
+app.js            express app: /health, /auth, /orgs, /notifications, 404, errors
+server.js         boots the app
+db/               pg pool, schema, reset/seed scripts, query layer per domain
+middleware/       auth (JWT + role guards), requireBody, central error handler
+routes/           auth, orgs (nests projects, which nest tasks), notifications
+test/             api.test.js (node:test), api.vitest.test.js (vitest)
+```
+
+## Roles
+
+`viewer < member < admin < owner`. Viewers read; members manage tasks,
+comments, and attachments; admins manage projects and members; the owner
+(exactly one, seated at org creation) can delete the org.
+
+| Action              | Owner | Admin | Manager | Member      |
+| ------------------- | ----- | ----- | ------- | ----------- |
+| Create Organization | ✅    | ❌    | ❌      | ❌          |
+| Invite Users        | ✅    | ✅    | ✅      | ❌          |
+| Delete Projects     | ✅    | ✅    | ❌      | ❌          |
+| Edit Tasks          | ✅    | ✅    | ✅      | Assign Only |
+| View Boards         | ✅    | ✅    | ✅      | ✅          |
