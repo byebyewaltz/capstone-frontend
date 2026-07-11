@@ -14,36 +14,14 @@ writes through real REST calls with a JWT held in `localStorage`.
 - **Recharts** — dashboard charts (status, priority, weekly activity, monthly growth)
 - **lucide-react** — icons
 - Hand-rolled CSS (`src/styles.css`), no framework
+  
 =======
+
 # TaskForge — full-stack team project management
 
 Use relational data modeling, SQL (joins, aggregates, CTEs, transactions, locking), REST API design, Express middleware architecture, JWT auth + bcrypt, role-based authorization and multi-tenant isolation, centralized error handling, React with Context/hooks, optimistic UI and drag-and-drop, client-side API abstraction, data visualization with Recharts, seeding/demo-data engineering, API testing, and environment-based configuration.
 
 The through-line that makes it a good capstone: every rule is enforced at the right layer — the database constrains what can exist, the API constrains who can do what, and the UI merely reflects those rules back to the user.
-
-
-# Tech Stack
-
-Frontend
-React 19
-React Router
-Context API
-Redux Toolkit
-Chart.js
-React Hook Form
-Tailwind CSS
-Framer Motion
-
-Backend
-Express.js
-Node.js
-PostgreSQL
-JWT Authentication
-bcrypt
-Socket.io (notifications)
-Database
-
-PostgreSQL
 
 A simplified Trello/Asana/Jira in two parts:
 
@@ -53,8 +31,7 @@ A simplified Trello/Asana/Jira in two parts:
 >>>>>>> 0a14dcffb652a1190ef0b386d38a6bd629300385
 
 ## Quick start
-
-```bash
+```
 # 1. Backend (see ../taskforge-backend/README.md)
 cd taskforge-backend
 npm install
@@ -71,28 +48,6 @@ npm run dev                    # http://localhost:5173
 Sign in with a demo identity (password `password123`):
 Donna = owner, Marcus = admin, Priya = member, Leo = viewer. The role changes
 what the UI permits, enforced server-side by role-guarded routes.
-
-## Scripts
-
-```bash
-npm run dev       # Vite dev server with API proxy
-npm run build     # production build to dist/
-npm run preview   # serve the production build
-npm run lint      # eslint over src/
-```
-
-## Layout
-
-```
-index.html            entry document
-src/main.jsx          mounts <App />
-src/App.jsx           session boot, org selection, view routing, app context
-src/api.js            fetch wrapper + typed ApiError, JWT handling, all endpoints
-src/constants.js      theme colors, roles, priorities, small format helpers
-src/styles.css        all styling
-src/views/            AuthGate, Sidebar, Topbar, Dashboard, Board, TaskDrawer,
-                      TeamView, SettingsView
-```
 
 ## Roles
 
