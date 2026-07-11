@@ -64,6 +64,8 @@ export const api = {
   analytics: (orgId) => get(`/orgs/${orgId}/projects/analytics`),
   search: (orgId, q) => get(`/orgs/${orgId}/projects/search?q=${encodeURIComponent(q)}`),
 
+  weeklyActivity: (orgId) => get(`/orgs/${orgId}/analytics/weekly`),
+monthlyGrowth:  (orgId) => get(`/orgs/${orgId}/analytics/monthly`),
   // tasks
   tasks: (orgId, projectId, params = {}) => {
     const qs = new URLSearchParams(
