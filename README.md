@@ -8,15 +8,12 @@ writes through real REST calls with a JWT held in `localStorage`.
 
 ## Tech stack
 
-<<<<<<< HEAD
 - **React 18** (hooks + Context API for app state)
 - **Vite 5** (dev server proxies `/auth`, `/orgs`, `/notifications` to the API on `:3000`)
 - **Recharts** — dashboard charts (status, priority, weekly activity, monthly growth)
 - **lucide-react** — icons
 - Hand-rolled CSS (`src/styles.css`), no framework
   
-=======
-
 # TaskForge — full-stack team project management
 
 Use relational data modeling, SQL (joins, aggregates, CTEs, transactions, locking), REST API design, Express middleware architecture, JWT auth + bcrypt, role-based authorization and multi-tenant isolation, centralized error handling, React with Context/hooks, optimistic UI and drag-and-drop, client-side API abstraction, data visualization with Recharts, seeding/demo-data engineering, API testing, and environment-based configuration.
@@ -28,7 +25,6 @@ A simplified Trello/Asana/Jira in two parts:
 - **taskforge-backend/** — Express 5 + PostgreSQL REST API (JWT auth, RBAC,
   normalized schema, transactional drag-and-drop, 18-test suite).
 - **taskforge-frontend/** — React + Vite frontend wired to that API (no mock data).
->>>>>>> 0a14dcffb652a1190ef0b386d38a6bd629300385
 
 ## Quick start
 ```
