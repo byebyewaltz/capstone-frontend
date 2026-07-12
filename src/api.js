@@ -91,4 +91,4 @@ export const api = {
   notifications: () => get("/notifications"),
   readNotif: (id) => patch(`/notifications/${id}/read`),
   readAllNotifs: () => patch("/notifications/read-all"),
-};
+}; 
