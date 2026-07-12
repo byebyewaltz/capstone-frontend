@@ -124,7 +124,7 @@ export default function App() {
         </div>
       </div>
     );
-  }
+  } 
 
   const ctx = {
     me, orgs, orgId, selectOrg, createOrg, membership, can, signOut,
@@ -154,6 +154,6 @@ export default function App() {
           />
         )}
       </div>
-    </AppCtx.Provider>
+    </AppCtx.Provider> 
   );
 }
