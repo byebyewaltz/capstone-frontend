@@ -83,21 +83,24 @@ export default function Board() {
 
       <div className="tf-board">
         {columns.map((col) => {
-          const items = tasks.filter((t) => t.column_id === col.id && visible(t)).sort((a, b) => a.position - b.position);
+          // Drop positions are computed against the full column, not the
+          // filtered view — otherwise active filters would misplace cards.
+          const colTasks = tasks.filter((t) => t.column_id === col.id).sort((a, b) => a.position - b.position);
+          const items = colTasks.filter(visible);
           return (
             <div key={col.id} className={`tf-col ${overCol === col.id ? "over" : ""}`}
               onDragOver={(e) => { e.preventDefault(); setOverCol(col.id); }}
               onDragLeave={() => setOverCol((c) => (c === col.id ? null : c))}
-              onDrop={() => onDrop(col.id, items.length)}>
+              onDrop={() => onDrop(col.id, colTasks.length)}>
               <div className="tf-col-head">
                 <span className="tf-col-name">{col.name}</span>
                 <span className="tf-col-count">{items.length}</span>
               </div>
               <div className="tf-col-body">
-                {items.map((t, i) => (
+                {items.map((t) => (
                   <div key={t.id}
                     onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); }}
-                    onDrop={(e) => { e.stopPropagation(); onDrop(col.id, i); }}>
+                    onDrop={(e) => { e.stopPropagation(); onDrop(col.id, colTasks.indexOf(t)); }}>
                     <TaskCard task={t} members={members} draggable={can("member")}
                       columnName={col.name}
                       onDragStart={() => setDrag(t.id)}

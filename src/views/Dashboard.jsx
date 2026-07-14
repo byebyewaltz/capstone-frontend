@@ -13,12 +13,14 @@ const tipStyle = { background: T.white, border: `1px solid ${T.line}`, borderRad
 export default function Dashboard() {
   const { me, dataVersion, orgId } = useApp();
   const [data, setData] = useState(null);
+  const [failed, setFailed] = useState(false);
   const [myCount, setMyCount] = useState(0);
   const [weekly, setWeekly] = useState(null);
   const [growth, setGrowth] = useState(null);
 
   useEffect(() => {
-    api.analytics(orgId).then(setData).catch(() => {});
+    setFailed(false);
+    api.analytics(orgId).then(setData).catch(() => setFailed(true));
     api.weeklyActivity(orgId).then(setWeekly).catch(() => setWeekly([]));
     api.monthlyGrowth(orgId).then(setGrowth).catch(() => setGrowth([]));
     // Count tasks assigned to me across projects.
@@ -29,7 +31,13 @@ export default function Dashboard() {
     })().catch(() => setMyCount(0));
   }, [orgId, me.id, dataVersion]);
 
-  if (!data) return <div className="tf-empty">Loading analytics…</div>;
+  if (!data) {
+    return (
+      <div className="tf-empty">
+        {failed ? "Couldn’t load analytics — check that the API is running." : "Loading analytics…"}
+      </div>
+    );
+  }
 
   const { totals, byStatus, byPriority } = data;
   const completion = totals.total ? Math.round((totals.completed / totals.total) * 100) : 0;

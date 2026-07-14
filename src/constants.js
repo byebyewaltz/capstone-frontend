@@ -15,12 +15,12 @@ export const PRIORITY = {
   urgent: { label: "Urgent", color: T.rose },
 };
 
-export const ORG_ID = 1; // single-org demo
-
 export const initials = (n) =>
   (n || "?").split(" ").filter(Boolean).map((x) => x[0]).slice(0, 2).join("").toUpperCase();
 export const fmtSize = (b) =>
-  b > 1e6 ? (b / 1e6).toFixed(1) + " MB" : (b / 1e3).toFixed(0) + " KB";
+  b >= 1e6 ? (b / 1e6).toFixed(1) + " MB"
+  : b >= 1e3 ? (b / 1e3).toFixed(0) + " KB"
+  : (b || 0) + " B";
 export const fmtDate = (d) =>
   d ? new Date(d).toLocaleDateString("en-US", { month: "short", day: "numeric" }) : "";
 export const overdue = (d) => d && new Date(d) < new Date(new Date().toDateString());

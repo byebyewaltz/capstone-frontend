@@ -124,7 +124,7 @@ export default function App() {
         </div>
       </div>
     );
-  } 
+  }
 
   const ctx = {
     me, orgs, orgId, selectOrg, createOrg, membership, can, signOut,
@@ -144,7 +144,7 @@ export default function App() {
             {view === "team" && <TeamView />}
             {view === "settings" && <SettingsView />}
           </div>
-          <footer className="tf-footer">© 2025 - Donna Chen</footer>
+          <footer className="tf-footer">© 2026 - Donna Chen</footer>
         </main>
         {openTask && (
           <TaskDrawer
@@ -154,6 +154,6 @@ export default function App() {
           />
         )}
       </div>
-    </AppCtx.Provider> 
+    </AppCtx.Provider>
   );
 }
