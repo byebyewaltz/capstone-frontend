@@ -63,30 +63,57 @@ npm run preview   # serve the production build
 npm run lint      # eslint over src/
 ```
 
----
-
 ## Architecture
+
+taskforge-backend/
+├── db/
+│ ├── queries/
+│ │ ├── users.js
+│ │ ├── organizations.js
+│ │ ├── boards.js
+│ │ ├── columns.js
+│ │ ├── tasks.js ← also holds weeklyActivity / monthlyGrowth analytics
+│ │ ├── comments.js
+│ │ ├── attachments.js
+│ │ ├── notifications.js
+│ │ └── analytics.js
+│ ├── client.js ← pg pool
+│ ├── schema.sql
+│ ├── setup.js
+│ └── seed.js ← d(offset) relative-date helper, backdated timestamps
+├── routes/
+│ ├── auth.js ← register (auto-join org), login
+│ ├── organizations.js ← nested routers mount under this
+│ ├── boards.js
+│ ├── tasks.js
+│ ├── analytics.js ← mergeParams sub-router, GET /weekly, /monthly
+│ └── notifications.js
+├── middleware/
+│ ├── auth.js ← JWT verify, getUserFromToken
+│ ├── rbac.js ← owner > admin > member > viewer guards
+│ ├── requireBody.js
+│ └── error.js ← central handler, PG codes (23505→409, 23503/23502/22P02/23514→400)
+├── app.js
+├── server.js
+├── .env
+└── package.json ← "type": "module" + imports map (#db/_, #routes/_, #middleware/\*)
 
 taskforge-frontend/
 ├── src/
-│ ├── views/
-│ │ ├── AuthGate.jsx ← login/register + demo accounts
-│ │ ├── Sidebar.jsx
-│ │ ├── Topbar.jsx
-│ │ ├── Dashboard.jsx
-│ │ ├── DashboardCharts.jsx ← Fig. 01 weekly bars, Fig. 02 growth composed chart
-│ │ ├── Board.jsx ← Kanban, @hello-pangea/dnd, fractional positions
-│ │ ├── TaskDrawer.jsx
-│ │ ├── TeamView.jsx ← rewritten with fixed role hierarchy
-│ │ └── SettingsView.jsx ← org deletion danger zone
-│ ├── App.jsx ← AppCtx provider, view routing, session boot
-│ ├── main.jsx
-│ ├── api.js ← fetch wrapper + ApiError
-│ ├── constants.js ← ROLES, ROLE_RANK, initials, tokens
-│ ├── styles.css ← Drafting Sheet system (terracotta/paper, Fraunces/Inter/Plex Mono)
-│ └── dashboard-charts.css
-├── vite.config.js
-└── package.json ← react 18, recharts, lucide-react, vite 5
+│   ├── views/
+│   │   ├── AuthGate.jsx      # login / register + demo accounts
+│   │   ├── Sidebar.jsx
+│   │   ├── Topbar.jsx        # global debounced search, notification bell
+│   │   ├── Dashboard.jsx
+│   │   ├── DashboardCharts.jsx
+│   │   ├── Board.jsx         # Kanban with drag-and-drop
+│   │   ├── TaskDrawer.jsx    # details, comments, attachments
+│   │   ├── TeamView.jsx      # member & role administration
+│   │   └── Settings.jsx
+│   ├── api.js                # typed fetch wrapper; carries JWT, throws ApiError
+│   ├── App.jsx               # session bootstrap via GET /auth/me
+│   └── styles.css            # design system
+└── vite.config.js
 
 ### Backend
 
