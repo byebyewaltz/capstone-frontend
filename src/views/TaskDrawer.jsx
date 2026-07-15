@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { X, Trash2, Paperclip, MessageSquare, Send, FileText, Plus } from "lucide-react";
 import { api } from "../api.js";
 import { useApp } from "../context.js";
-import { PRIORITY, initials, fmtSize, timeAgo, T } from "../constants.js";
+import { PRIORITY, initials, fmtSize, timeAgo, ymd, T } from "../constants.js";
 
 export default function TaskDrawer({ projectId, taskId, onClose }) {
   const { me, can, refresh, orgId } = useApp();
@@ -43,14 +43,21 @@ export default function TaskDrawer({ projectId, taskId, onClose }) {
     setFiles(atts);
   }, [orgId, resolveProject, taskId, onClose]);
 
-  useEffect(() => { load(); }, [load]);
+  // If the task can't be loaded at all (deleted, or its project lives in a
+  // different workspace than the active one), close rather than hanging open
+  // invisibly with `task` stuck at null.
+  useEffect(() => { load().catch(onClose); }, [load, onClose]);
 
   if (!task) return null;
 
   const patch = async (body) => {
-    const updated = await api.updateTask(orgId, pid, taskId, body);
-    setTask(updated);
-    refresh();
+    try {
+      const updated = await api.updateTask(orgId, pid, taskId, body);
+      setTask(updated);
+      refresh();
+    } catch {
+      load(); // e.g. an emptied title is refused server-side — resync
+    }
   };
   const addComment = async () => {
     if (!comment.trim()) return;
@@ -115,7 +122,7 @@ export default function TaskDrawer({ projectId, taskId, onClose }) {
               </select>
             </Prop>
             <Prop label="Due date">
-              <input type="date" disabled={!editable} value={task.due_date ? task.due_date.slice(0, 10) : ""}
+              <input type="date" disabled={!editable} value={ymd(task.due_date)}
                 onChange={(e) => patch({ dueDate: e.target.value })} />
             </Prop>
           </div>

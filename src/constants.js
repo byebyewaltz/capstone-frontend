@@ -23,6 +23,18 @@ export const fmtSize = (b) =>
   : (b || 0) + " B";
 export const fmtDate = (d) =>
   d ? new Date(d).toLocaleDateString("en-US", { month: "short", day: "numeric" }) : "";
+// "YYYY-MM-DD" from the LOCAL calendar day. The API serializes DATE columns
+// as local-midnight timestamps, so slicing the ISO string would shift the day
+// in timezones east of UTC.
+export const ymd = (d) => {
+  if (!d) return "";
+  const x = new Date(d);
+  return [
+    x.getFullYear(),
+    String(x.getMonth() + 1).padStart(2, "0"),
+    String(x.getDate()).padStart(2, "0"),
+  ].join("-");
+};
 export const overdue = (d) => d && new Date(d) < new Date(new Date().toDateString());
 export const timeAgo = (t) => {
   const s = Math.floor((Date.now() - new Date(t).getTime()) / 1000);

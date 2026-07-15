@@ -234,6 +234,9 @@ button { cursor: pointer; }
 .tf-set-row:last-child { border-bottom: none; }
 .tf-set-row span { color: var(--inkSoft); }
 .tf-set-row code { font-family: 'IBM Plex Mono', monospace; font-size: 13px; background: var(--paper); padding: 2px 7px; border-radius: 5px; }
+.tf-set-card.danger { border-color: #B5566B66; }
+.tf-set-card.danger h4 { display: flex; align-items: center; gap: 7px; color: var(--rose); }
+.tf-set-danger-text { font-size: 13.5px; color: var(--inkSoft); margin-bottom: 14px; max-width: 62ch; line-height: 1.5; }
 
 @media (max-width: 900px) {
   .tf-auth { grid-template-columns: 1fr; }

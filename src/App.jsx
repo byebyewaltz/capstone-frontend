@@ -86,6 +86,15 @@ export default function App() {
     return org;
   }
 
+  // Owner-only (the server re-checks). The backend refuses to delete the
+  // caller's only org, so on success there is always a workspace to land in.
+  async function deleteOrg(confirm) {
+    await api.deleteOrg(orgId, confirm);
+    const next = orgs.filter((o) => o.id !== orgId);
+    setOrgs(next);
+    await selectOrg(next[0].id, me, next);
+  }
+
   async function onAuthed({ user, token }) {
     setToken(token);
     await establish(user);
@@ -127,7 +136,7 @@ export default function App() {
   }
 
   const ctx = {
-    me, orgs, orgId, selectOrg, createOrg, membership, can, signOut,
+    me, orgs, orgId, selectOrg, createOrg, deleteOrg, membership, can, signOut,
     view, setView, activeProject, setActiveProject,
     openTask, setOpenTask, dataVersion, refresh,
   };

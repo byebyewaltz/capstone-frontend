@@ -51,6 +51,8 @@ export const api = {
   orgs: () => get("/orgs"),
   createOrg: (body) => post("/orgs", body),
   getOrg: (orgId) => get(`/orgs/${orgId}`),
+  // Owner-only; the server demands the org's exact name as confirmation.
+  deleteOrg: (orgId, confirm) => request("DELETE", `/orgs/${orgId}`, { confirm }),
   members: (orgId) => get(`/orgs/${orgId}/members`),
   assignable: (orgId) => get(`/orgs/${orgId}/assignable`),
   addMember: (orgId, who, role) => post(`/orgs/${orgId}/members`, { ...who, role }),

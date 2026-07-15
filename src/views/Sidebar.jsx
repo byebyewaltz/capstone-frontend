@@ -45,12 +45,15 @@ export default function Sidebar() {
   const addProject = async () => {
     if (!name.trim()) return;
     setErr("");
+    // Keys are unique per org and render as chips, so no spaces or symbols.
+    const key = (name.replace(/[^a-zA-Z0-9]/g, "").slice(0, 3) || "PRJ").toUpperCase();
     try {
-      const key = name.trim().slice(0, 3).toUpperCase();
       const p = await api.createProject(orgId, { name: name.trim(), key, color: T.blue });
       setName(""); setAdding(false); setActiveProject(p.id); refresh();
     } catch (e) {
-      setErr(e instanceof ApiError ? e.message : "Could not create project.");
+      setErr(e instanceof ApiError
+        ? (e.status === 409 ? `Key “${key}” is already used by another project.` : e.message)
+        : "Could not create project.");
     }
   };
 

@@ -58,7 +58,6 @@ The through-line of the design: **every rule is enforced at the right layer.** T
 - Task status and priority breakdowns per project.
 - Weekly created-vs-completed activity (last 7 days).
 - Monthly cumulative growth (last 6 months).
-- Due-date calendar density for any month.
 
 ---
 
@@ -67,7 +66,7 @@ The through-line of the design: **every rule is enforced at the right layer.** T
 | Layer              | Technology                                                        |
 | ------------------ | ----------------------------------------------------------------- |
 | Runtime            | Node.js (native ES modules + subpath imports)                     |
-| Backend framework  | Express 5                                                         |
+| Backend framework  | Express 4                                                         |
 | Database           | PostgreSQL via `pg` (connection pool, parameterized queries)      |
 | Auth               | `jsonwebtoken` (JWT bearer tokens) + `bcryptjs` password hashing  |
 | Config             | `dotenv` (`.env` → `PORT`, `DATABASE_URL`, `JWT_SECRET`)          |
@@ -339,7 +338,6 @@ All responses are JSON. Errors share one shape: `{ "error": "message" }`. Every 
 | ------ | ---------------------------------------- | ------ | -------------------------------------------- |
 | `GET`  | `/orgs/:orgId/analytics/weekly`          | member | Created vs. completed, last 7 days           |
 | `GET`  | `/orgs/:orgId/analytics/monthly`         | member | Cumulative totals, last 6 months             |
-| `GET`  | `/orgs/:orgId/analytics/calendar?month=` | member | Due-date density for a month (`YYYY-MM`)     |
 | `GET`  | `/orgs/:orgId/projects/analytics`        | member | Per-project status & priority breakdowns     |
 | `GET`  | `/orgs/:orgId/projects/search?q=`        | member | Org-wide task search                         |
 
