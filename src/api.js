@@ -18,8 +18,14 @@ export class ApiError extends Error {
   }
 }
 
+// Same-origin by default: the dev server proxies /auth, /orgs, and
+// /notifications to the API (vite.config.js). A split deployment (SPA and API
+// on different hosts) sets VITE_API_URL to the API's origin at build time,
+// and the API must then allow that origin via its CORS_ORIGIN.
+const BASE = (import.meta.env.VITE_API_URL || "").replace(/\/+$/, "");
+
 async function request(method, path, body) {
-  const res = await fetch(path, {
+  const res = await fetch(BASE + path, {
     method,
     headers: {
       "Content-Type": "application/json",
